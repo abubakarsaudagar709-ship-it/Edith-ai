@@ -7,7 +7,7 @@ package.domain = org.abubakarsaudagar
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
 
-version = 1.1.0
+version = 1.2.0
 
 requirements = python3,kivy,plyer,certifi
 
