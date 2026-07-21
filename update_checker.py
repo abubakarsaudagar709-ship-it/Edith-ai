@@ -10,17 +10,10 @@ except Exception:
     SSL_CONTEXT = ssl.create_default_context()
 
 REPO = "abubakarsaudagar709-ship-it/Edith-ai"
-CURRENT_VERSION = "1.1.0"
+CURRENT_VERSION = "1.2.0"
 
 
 def check_for_update(callback):
-    """
-    Runs the check in a background thread so it never blocks the UI.
-    callback(message_or_none) is called on the main thread via Clock
-    by the caller — this function itself just calls callback(...) directly,
-    so the caller should wrap it with Clock.schedule_once if needed.
-    """
-
     def worker():
         try:
             url = f"https://api.github.com/repos/{REPO}/releases/latest"
