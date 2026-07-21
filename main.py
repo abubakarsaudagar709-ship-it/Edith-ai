@@ -31,7 +31,7 @@ class ChatBubble(AnchorLayout):
         self.label = Label(
             text=text,
             color=WHITE,
-            font_size=15,
+            font_size=19,
             halign="left",
             valign="top",
             size_hint=(None, None),
@@ -97,6 +97,7 @@ class EdithUI(BoxLayout):
 
         self.entry = TextInput(
             multiline=False,
+            font_size=18,
             background_color=DARK_GRAY,
             foreground_color=WHITE,
             cursor_color=WHITE
