@@ -57,6 +57,41 @@ HINGLISH_WORDS = [
     "kar", "krdo", "kro", "bhai", "yaar", "acha", "theek", "nahi", "haan"
 ]
 
+GREETING_PHRASES = [
+    "hi", "hello", "hey", "what's up", "whats up", "wassup", "sup", "yo",
+    "namaste", "kya haal hai", "kya scene hai", "kya chal raha hai"
+]
+
+HOW_ARE_YOU_PHRASES = [
+    "how are you", "how r u", "kaise ho", "kaisi ho", "haal chaal", "kya haal hai"
+]
+
+THANKS_PHRASES = ["thanks", "thank you", "thanku", "shukriya", "dhanyavad"]
+
+BYE_PHRASES = ["bye", "goodbye", "see you", "alvida", "chalta hoon", "chalti hoon"]
+
+HELP_PHRASES = ["help", "what can you do", "kya kar sakti ho", "madad"]
+
+WHO_ARE_YOU_PHRASES = ["who are you", "tum kaun ho", "aap kaun hain"]
+
+TIME_PHRASES = [
+    "time", "what is the time", "what time is it", "current time",
+    "samay kya hai", "time kya hai"
+]
+
+DATE_PHRASES = [
+    "date", "what is the date", "what's the date", "today's date",
+    "aaj ki tareekh", "tareekh kya hai"
+]
+
+
+def contains_any(cmd, phrases):
+    for phrase in phrases:
+        pattern = r"\b" + re.escape(phrase) + r"\b"
+        if re.search(pattern, cmd):
+            return True
+    return False
+
 
 def detect_language(text):
     if re.search(r"[\u0900-\u097F]", text):
@@ -189,6 +224,16 @@ def is_founder_question(cmd):
     return has_who and has_founder_word
 
 
+def truncate_result(text, max_len=280):
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    result = ""
+    for s in sentences:
+        if result and len(result) + len(s) > max_len:
+            break
+        result += (" " if result else "") + s
+    return result.strip()
+
+
 def process_command(raw_text, user):
     cmd = raw_text.lower().strip()
     lang = detect_language(raw_text)
@@ -197,28 +242,13 @@ def process_command(raw_text, user):
     if is_founder_question(cmd):
         return FOUNDER_REPLY
 
-    if cmd == "who are you":
+    if contains_any(cmd, WHO_ARE_YOU_PHRASES):
         return "I'm Edith, your personal AI assistant."
 
-    if cmd in ["hi", "hello", "hey"]:
-        return reply_for("greeting", lang, name=name)
-
-    if cmd == "how are you":
-        return reply_for("how_are_you", lang)
-
-    if cmd in ["thanks", "thank you"]:
-        return reply_for("thanks", lang, name=name)
-
-    if cmd in ["bye", "goodbye"]:
-        return reply_for("bye", lang, name=name)
-
-    if cmd in ["help", "what can you do"]:
-        return reply_for("help", lang)
-
-    if cmd in ["time", "what is the time", "what time is it", "current time"]:
+    if contains_any(cmd, TIME_PHRASES):
         return get_time()
 
-    if cmd in ["date", "what is the date", "what's the date", "today"]:
+    if contains_any(cmd, DATE_PHRASES):
         return get_date()
 
     if cmd.startswith("save note "):
@@ -244,8 +274,23 @@ def process_command(raw_text, user):
     if cmd in ["i am happy", "i am sad", "i am angry", "i am tired"]:
         return mood_reply(cmd)
 
+    if contains_any(cmd, HOW_ARE_YOU_PHRASES):
+        return reply_for("how_are_you", lang)
+
+    if contains_any(cmd, THANKS_PHRASES):
+        return reply_for("thanks", lang, name=name)
+
+    if contains_any(cmd, BYE_PHRASES):
+        return reply_for("bye", lang, name=name)
+
+    if contains_any(cmd, HELP_PHRASES):
+        return reply_for("help", lang)
+
+    if contains_any(cmd, GREETING_PHRASES):
+        return reply_for("greeting", lang, name=name)
+
     result = web_search(raw_text)
     if result:
-        return result
+        return truncate_result(result)
 
     return reply_for("not_found", lang)
