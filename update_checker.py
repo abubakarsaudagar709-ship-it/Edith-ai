@@ -10,7 +10,7 @@ except Exception:
     SSL_CONTEXT = ssl.create_default_context()
 
 REPO = "abubakarsaudagar709-ship-it/Edith-ai"
-CURRENT_VERSION = "1.0.0"
+CURRENT_VERSION = "1.1.0"
 
 
 def check_for_update(callback):
