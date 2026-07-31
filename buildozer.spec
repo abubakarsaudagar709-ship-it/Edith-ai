@@ -14,7 +14,9 @@ requirements = python3,kivy,plyer,certifi
 orientation = portrait
 fullscreen = 0
 
-android.permissions = INTERNET,RECORD_AUDIO
+services = wakeword:service.py
+
+android.permissions = INTERNET,RECORD_AUDIO,FOREGROUND_SERVICE,FOREGROUND_SERVICE_MICROPHONE,POST_NOTIFICATIONS
 android.api = 33
 android.minapi = 21
 android.ndk = 25b
