@@ -373,6 +373,9 @@ def process_command(raw_text, user):
         return reply_for("greeting", lang, name=name)
 
     if not looks_like_question(raw_text):
+        known = find_knowledge(raw_text)
+        if known:
+            return known
         return reply_for("acknowledge", lang)
 
     known = find_knowledge(raw_text)
@@ -383,4 +386,4 @@ def process_command(raw_text, user):
     if result:
         return truncate_result(result)
 
-    return reply_for("not_found", lang) 
+    return reply_for("not_found", lang)
