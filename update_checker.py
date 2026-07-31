@@ -13,6 +13,17 @@ REPO = "abubakarsaudagar709-ship-it/Edith-ai"
 CURRENT_VERSION = "1.2.0"
 
 
+def parse_version(v):
+    parts = v.split(".")
+    result = []
+    for p in parts:
+        try:
+            result.append(int(p))
+        except ValueError:
+            result.append(0)
+    return tuple(result)
+
+
 def check_for_update(callback):
     def worker():
         try:
@@ -21,7 +32,7 @@ def check_for_update(callback):
             with urllib.request.urlopen(req, timeout=10, context=SSL_CONTEXT) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             latest_tag = data.get("tag_name", "").lstrip("v")
-            if latest_tag and latest_tag != CURRENT_VERSION:
+            if latest_tag and parse_version(latest_tag) > parse_version(CURRENT_VERSION):
                 url_page = f"https://github.com/{REPO}/releases/latest"
                 callback(f"A new version ({latest_tag}) is available.\n{url_page}")
         except Exception:
