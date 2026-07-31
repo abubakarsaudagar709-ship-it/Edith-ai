@@ -1,3 +1,5 @@
+import os
+
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
@@ -14,12 +16,20 @@ from edith_core import process_command, load_user, create_user, bump_message_cou
 from voice_utils import listen_once, speak
 from update_checker import check_for_update
 
+try:
+    from jnius import autoclass
+    JNIUS_AVAILABLE = True
+except Exception:
+    JNIUS_AVAILABLE = False
+
 Window.softinput_mode = "below_target"
 
 BLACK = (0.05, 0.05, 0.05, 1)
 DARK_GRAY = (0.13, 0.13, 0.13, 1)
 RED = (0.85, 0.1, 0.15, 1)
 WHITE = (1, 1, 1, 1)
+
+WAKE_COMMAND_FILE = "edith_wake_command.txt"
 
 
 class ChatBubble(AnchorLayout):
@@ -32,7 +42,7 @@ class ChatBubble(AnchorLayout):
         self.label = Label(
             text=text,
             color=WHITE,
-            font_size=19,
+            font_size=23,
             halign="left",
             valign="top",
             size_hint=(None, None),
@@ -64,6 +74,7 @@ class EdithUI(BoxLayout):
         super().__init__(orientation="vertical", **kwargs)
 
         self.voice_enabled = False
+        self.wake_word_enabled = False
         self.user = load_user()
         self.awaiting_name = self.user is None
 
@@ -73,22 +84,32 @@ class EdithUI(BoxLayout):
             self.topbar_bg = RoundedRectangle(radius=[0])
         top_bar.bind(pos=self._update_topbar_bg, size=self._update_topbar_bg)
 
-        title = Label(text="EDITH", font_size=26, bold=True, color=RED, halign="left")
+        title = Label(text="EDITH", font_size=24, bold=True, color=RED, halign="left")
         top_bar.add_widget(title)
 
         self.voice_btn = Button(
             text="Voice: OFF",
-            size_hint=(0.4, 1),
+            size_hint=(0.3, 1),
             background_color=DARK_GRAY,
             color=WHITE,
-            font_size=13
+            font_size=12
         )
         self.voice_btn.bind(on_press=self.toggle_voice)
         top_bar.add_widget(self.voice_btn)
 
+        self.wake_btn = Button(
+            text="Wake: OFF",
+            size_hint=(0.3, 1),
+            background_color=DARK_GRAY,
+            color=WHITE,
+            font_size=12
+        )
+        self.wake_btn.bind(on_press=self.toggle_wake_word)
+        top_bar.add_widget(self.wake_btn)
+
         self.add_widget(top_bar)
 
-        self.scroll = ScrollView(size_hint=(1, 0.7))
+        self.scroll = ScrollView(size_hint=(1, 0.68))
         self.chat_box = BoxLayout(orientation="vertical", size_hint_y=None, spacing=8, padding=(10, 10))
         self.chat_box.bind(minimum_height=self.chat_box.setter("height"))
         self.scroll.add_widget(self.chat_box)
@@ -123,6 +144,7 @@ class EdithUI(BoxLayout):
         Window.clearcolor = BLACK
 
         Clock.schedule_once(self._startup, 0.4)
+        Clock.schedule_interval(self._poll_wake_command, 2)
 
     def _update_topbar_bg(self, *args):
         self.topbar_bg.pos = args[0].pos
@@ -185,6 +207,43 @@ class EdithUI(BoxLayout):
     def toggle_voice(self, *args):
         self.voice_enabled = not self.voice_enabled
         self.voice_btn.text = "Voice: ON" if self.voice_enabled else "Voice: OFF"
+
+    def toggle_wake_word(self, *args):
+        self.wake_word_enabled = not self.wake_word_enabled
+        self.wake_btn.text = "Wake: ON" if self.wake_word_enabled else "Wake: OFF"
+
+        if not JNIUS_AVAILABLE:
+            self.add_bubble("Wake word only works in the installed Android app.", is_user=False)
+            return
+
+        try:
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            Intent = autoclass("android.content.Intent")
+            service_class_name = "org.abubakarsaudagar.edith.ServiceWakeword"
+            ServiceClass = autoclass(service_class_name)
+            intent = Intent(PythonActivity.mActivity, ServiceClass)
+            if self.wake_word_enabled:
+                PythonActivity.mActivity.startService(intent)
+                self.add_bubble("Wake word listening started.", is_user=False)
+            else:
+                PythonActivity.mActivity.stopService(intent)
+                self.add_bubble("Wake word listening stopped.", is_user=False)
+        except Exception:
+            self.add_bubble("Couldn't toggle the wake word service.", is_user=False)
+
+    def _poll_wake_command(self, dt):
+        if not self.wake_word_enabled:
+            return
+        if not os.path.exists(WAKE_COMMAND_FILE):
+            return
+        try:
+            with open(WAKE_COMMAND_FILE, "r") as f:
+                text = f.read().strip()
+            os.remove(WAKE_COMMAND_FILE)
+            if text:
+                self.handle_input(text)
+        except Exception:
+            pass
 
 
 class EdithApp(App):
